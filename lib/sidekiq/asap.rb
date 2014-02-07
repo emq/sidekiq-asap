@@ -30,7 +30,6 @@ module Sidekiq
     end
   end
 
-
   module Asap
   end
 end

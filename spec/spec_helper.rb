@@ -3,7 +3,7 @@ require "celluloid"
 require "sidekiq"
 require "sidekiq/processor"
 
-require_relative "../lib/sidekiq/asap"
+require_relative "../lib/sidekiq-asap"
 
 Sidekiq.logger.level = Logger::ERROR
 REDIS = Sidekiq::RedisConnection.create(url: "redis://localhost/15", namespace: "sideki-asap")
