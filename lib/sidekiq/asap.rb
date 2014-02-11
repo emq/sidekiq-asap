@@ -18,7 +18,13 @@ module Sidekiq
           end)
         else
           q = payloads.first['queue']
-          method = payloads.first['asap'] ? :rpush : :lpush
+          method = :lpush
+
+          if q =~ /^asap_/
+            method = :rpush
+            q = q.gsub("asap_", "")
+          end
+
           to_push = payloads.map { |entry| Sidekiq.dump_json(entry) }
           _, pushed = conn.multi do
             conn.sadd('queues', q)
@@ -31,17 +37,5 @@ module Sidekiq
   end
 
   module Asap
-  end
-end
-
-Sidekiq.configure_server do |config|
-  config.server_middleware do |chain|
-    chain.add Sidekiq::Asap::Middleware
-  end
-end
-
-Sidekiq.configure_client do |config|
-  config.client_middleware do |chain|
-    chain.add Sidekiq::Asap::Middleware
   end
 end
