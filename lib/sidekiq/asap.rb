@@ -1,5 +1,4 @@
 require "sidekiq/asap/version"
-require "sidekiq/asap/middleware"
 require "sidekiq/client"
 
 module Sidekiq
@@ -10,7 +9,7 @@ module Sidekiq
     # Ugly monkey patch
     def raw_push(payloads)
       pushed = false
-      Sidekiq.redis do |conn|
+      @redis_pool.with do |conn|
         if payloads.first['at']
           pushed = conn.zadd('schedule', payloads.map do |hash|
             at = hash.delete('at').to_s
