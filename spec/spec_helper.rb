@@ -1,7 +1,5 @@
 require "rspec"
-require "celluloid"
 require "sidekiq"
-require "sidekiq/processor"
 
 require_relative "../lib/sidekiq-asap"
 Sidekiq.logger.level = Logger::ERROR

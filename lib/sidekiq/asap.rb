@@ -6,35 +6,29 @@ module Sidekiq
 
     private
 
-    # Ugly monkey patch
-    def raw_push(payloads)
-      pushed = false
-      @redis_pool.with do |conn|
-        if payloads.first['at']
-          pushed = conn.zadd('schedule', payloads.map do |hash|
-            at = hash.delete('at').to_s
-            [at, Sidekiq.dump_json(hash)]
-          end)
-        else
-          q = payloads.first['queue']
-          method = :lpush
+    def atomic_push(conn, payloads)
+      if payloads.first['at']
+        conn.zadd('schedule'.freeze, payloads.map do |hash|
+          at = hash.delete('at'.freeze).to_s
+          [at, Sidekiq.dump_json(hash)]
+        end)
+      else
+        q = payloads.first['queue']
+        method = :lpush
 
-          if q =~ /^asap_/
-            method = :rpush
-            q = q.gsub("asap_", "")
-          end
-
-          to_push = payloads.map { |entry| Sidekiq.dump_json(entry) }
-          _, pushed = conn.multi do
-            conn.sadd('queues', q)
-            conn.send(method, "queue:#{q}", to_push)
-          end
+        if q =~ /^asap_/
+          method = :rpush
+          q = q.gsub("asap_", "")
         end
-      end
-      pushed
-    end
-  end
 
-  module Asap
+        now = Time.now.to_f
+        to_push = payloads.map do |entry|
+          entry['enqueued_at'.freeze] = now
+          Sidekiq.dump_json(entry)
+        end
+        conn.sadd('queues'.freeze, q)
+        conn.public_send(method, "queue:#{q}", to_push)
+      end
+    end
   end
 end
